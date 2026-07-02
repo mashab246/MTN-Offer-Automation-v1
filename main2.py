@@ -4,6 +4,39 @@ from modules.website import Website
 from modules.excel_handler2 import ExcelHandler
 from modules.bundle_mapping import OFFER_MAPPING, EXCEL_COLUMNS
 from modules.sharepoint import SharePoint
+#from modules.profiler import PerformanceProfiler
+
+def show_progress(processed, total, failures, start_time):
+
+    elapsed = time.time() - start_time
+
+    speed = (processed / elapsed) * 60 if elapsed > 0 else 0
+
+    remaining = total - processed
+
+    eta_seconds = (
+        remaining / (processed / elapsed)
+        if processed > 0 else 0
+    )
+
+    elapsed_days = int(elapsed // 86400)
+    elapsed_hours = int((elapsed % 86400) // 3600)
+    elapsed_minutes = int((elapsed % 3600) // 60)
+
+    eta_days = int(eta_seconds // 86400)
+    eta_hours = int((eta_seconds % 86400) // 3600)
+
+    print("\n===================================")
+    print(f"Processed : {processed:,} / {total:,}")
+    print(f"Speed     : {speed:.1f} numbers/min")
+    print(
+        f"Elapsed   : {elapsed_days}d "
+        f"{elapsed_hours}h "
+        f"{elapsed_minutes}m"
+    )
+    print(f"Remaining : {eta_days}d {eta_hours}h")
+    print(f"Failures  : {failures:,}")
+    print("===================================\n")
 
 
 DATA_URL = "https://www.mtn.co.ug/deal-types/daily-data-bundles/"
@@ -25,8 +58,14 @@ sharepoint.open_workbook(SHAREPOINT_URL)
 sharepoint.download_copy()
 
 time.sleep(10)
-
-excel = ExcelHandler("Offer Check from Website_Musa.xlsx")
+for _ in range(60):
+    try:
+        excel = ExcelHandler(
+            "Offer Check from Website_Musa.xlsx"
+            )
+        break
+    except:
+        time.sleep(1)
 
 numbers = excel.get_phone_numbers()
 
@@ -39,12 +78,19 @@ website = Website(browser.driver)
 
 
 # Dictionary to hold all results
-results = {}
+#results = {}
 
 
 print("\n==============================")
 print("PROCESSING DATA BUNDLES")
 print("==============================")
+
+total_numbers = len(numbers)
+processed = 0
+failures = 0
+
+start_time = time.time()
+
 
 browser.open(DATA_URL)
 
@@ -56,31 +102,123 @@ for row, phone in numbers:
 
     print(f"\nProcessing DATA for {phone}")
 
-    website.enter_number(phone)
+    #profiler = PerformanceProfiler()
 
+    #profiler.start("Enter Number")
+    website.enter_number(phone)
+    #profiler.stop("Enter Number")
+    #website.enter_number(phone)
+
+    #profiler.start("Click Proceed")
     website.click_proceed()
+    #profiler.stop("Click Proceed")
+    #website.click_proceed()
 
     #time.sleep(3)
+    try:
+        #profiler.start("Extract Offers")
+        data_offers = website.get_available_offers()
+        #profiler.stop("Extract Offers")
+        #data_offers = website.get_available_offers()
+        for offer in data_offers:
 
-    data_offers = website.get_available_offers()
+            if offer in OFFER_MAPPING:
+
+                excel_name = OFFER_MAPPING[offer]
+
+                if excel_name not in EXCEL_COLUMNS:
+
+                    print(
+                        f"EXCEL COLUMN MISSING: "
+                        f"{excel_name}"
+                    )
+                    continue
+
+                column = EXCEL_COLUMNS[excel_name]
+
+                print(
+                    f"DATA MATCH: "
+                    f"{offer} -> {column}"
+                )
+
+                excel.write_offer(
+                    row,
+                    column,
+                    1
+                )
+    except Exception as e:
+
+        failures += 1
+
+        print(f"Failed on {phone}: {e}")
+
+        try:
+            website.reset_page(DATA_URL)
+        except:
+            pass
+
+        processed += 1
+
+        if processed % 50 == 0:
+            show_progress(
+                processed,
+                total_numbers,
+                failures,
+                start_time
+            )
+
+        continue
+
 
     print(data_offers)
 
-    results[phone] = {
+    processed += 1
 
-        "row": row,
-        "data": data_offers,
-        "voice": []
+    if processed % 50 == 0:
 
-    }
+        show_progress(
+            processed,
+            total_numbers,
+            failures,
+            start_time
+        )
 
+        # checkpoint save every 500 numbers
+
+        if processed % 100 == 0:
+
+            print("Saving checkpoint...")
+
+            try:
+                excel.save()
+                print("Checkpoint saved.")
+            except Exception as save_error:
+                print(
+                    f"Checkpoint save failed: "
+                    f"{save_error}"
+                )
+
+    #profiler.start("Reload Page")
     website.reset_page(DATA_URL)
+    #profiler.stop("Reload Page")
+    #website.reset_page(DATA_URL)
     #time.sleep(2)
+    #total = profiler.summary()
+    #per_minute = 60 / total
 
+    #print(f"\nEstimated throughput: {per_minute:.2f} numbers/minute\n")
 
 print("\n==============================")
 print("PROCESSING VOICE BUNDLES")
 print("==============================")
+
+total_numbers = len(numbers)
+
+voice_processed = 0
+voice_failures = 0
+
+voice_start_time = time.time()
+
 
 browser.open(VOICE_URL)
 
@@ -92,45 +230,93 @@ for row, phone in numbers:
 
     print(f"\nProcessing VOICE for {phone}")
 
-    website.enter_number(phone)
+    try:
 
-    website.click_proceed()
+        website.enter_number(phone)
 
-    #time.sleep(3)
+        website.click_proceed()
 
-    voice_offers = website.get_available_offers()
+        voice_offers = website.get_available_offers()
 
-    print(voice_offers)
+        for offer in voice_offers:
 
-    results[phone]["voice"] = voice_offers
+            if offer in OFFER_MAPPING:
 
-    website.reset_page(VOICE_URL)
+                excel_name = OFFER_MAPPING[offer]
 
-    #time.sleep(2)
+                if excel_name not in EXCEL_COLUMNS:
 
+                    print(
+                        f"EXCEL COLUMN MISSING: "
+                        f"{excel_name}"
+                    )
+                    continue
 
-print("\n==============================")
-print("WRITING TO EXCEL")
-print("==============================")
+                column = EXCEL_COLUMNS[excel_name]
 
-for phone, info in results.items():
+                print(
+                    f"VOICE MATCH: "
+                    f"{offer} -> {column}"
+                )
 
-    row = info["row"]
+                excel.write_offer(
+                    row,
+                    column,
+                    1
+                )
 
-    all_offers = info["data"] + info["voice"]
+            else:
 
-    print(f"\nWriting offers for {phone}")
+                print(
+                    f"VOICE NO MAPPING: {offer}"
+                )
 
-    
-    for offer in all_offers:
+                print(voice_offers)
 
-        if offer in OFFER_MAPPING:
+                #results[phone]["voice"] = voice_offers
 
-            excel_name = OFFER_MAPPING[offer]
+                website.reset_page(VOICE_URL)
 
-            column = EXCEL_COLUMNS[excel_name]
+    except Exception as e:
 
-            excel.write_offer(row, column, 1)
+        voice_failures += 1
+
+        print(
+            f"Voice failed for "
+            f"{phone}: {e}"
+        )
+
+        try:
+            website.reset_page(VOICE_URL)
+        except:
+            pass
+
+    voice_processed += 1
+
+    if voice_processed % 50 == 0:
+
+        show_progress(
+            voice_processed,
+            total_numbers,
+            voice_failures,
+            voice_start_time
+        )
+
+        if voice_processed % 100 == 0:
+
+            print(
+                "Saving checkpoint..."
+            )
+
+            try:
+                excel.save()
+                print(
+                    "Checkpoint saved."
+                )
+            except Exception as e:
+                print(
+                    f"Checkpoint save failed: {e}"
+                )
 
 
 # Save Excel
@@ -141,5 +327,32 @@ print("\nExcel Saved Successfully.")
 
 # Close Browser
 browser.close()
+
+print("\n===================================")
+print("FINAL SUMMARY")
+print("===================================")
+
+show_progress(
+    total_numbers,
+    total_numbers,
+    failures + voice_failures,
+    start_time
+)
+
+print(
+    f"Data Failures : {failures:,}"
+)
+
+print(
+    f"Voice Failures: "
+    f"{voice_failures:,}"
+)
+
+print(
+    f"Total Failures: "
+    f"{failures + voice_failures:,}"
+)
+
+print("===================================\n")
 
 print("\nAutomation Finished Successfully!")

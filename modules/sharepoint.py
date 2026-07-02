@@ -24,25 +24,47 @@ class SharePoint:
         )
 
         print("switched to excel frame")
+         # Give SharePoint time to finish rendering the ribbon
+        wait.until(
+            lambda d: d.execute_script("return document.readyState") == "complete"
+        )
         print("step 1: looking for file")
 
         # File
-        file_btn = wait.until(
+        """file_btn = wait.until(
             EC.element_to_be_clickable(
                 #(By.XPATH, "//span[text()='File']")
                 (By.XPATH, "//*[normalize-space()='File']")
             )
         )
+        file_btn.click
+        print("step 2: file clicked")"""
+        file_text = wait.until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//span[normalize-space()='File']")
+            )
+        )
 
-        print("step 2: file found")
+        file_button = file_text.find_element(By.XPATH, "./ancestor::button[1]")
 
-        file_btn.click()
+        self.driver.execute_script(
+            "arguments[0].click();",
+            file_button
+        )
 
-        print("step 3: file clicked")
+        print("File clicked")
+        #input("Has the File menu actually opened? Press Enter...")
 
-        #time.sleep(2)
+        time.sleep(3)
 
-        print("Step 4: Looking for Info")
+        print("Current URL:", self.driver.current_url)
+
+        print("Page title:", self.driver.title)
+
+        print("Info elements:",
+            len(self.driver.find_elements(By.XPATH, "//*[normalize-space()='Info']")))
+
+        print("Step 3: Looking for Info")
 
         info_btn = wait.until(
             EC.element_to_be_clickable(
@@ -67,7 +89,7 @@ class SharePoint:
         # Give the side panel time to open
         #time.sleep(3)
 
-        print("Step 5: Looking for Open in Desktop")
+        print("Step 4: Looking for Open in Desktop")
 
         open_btn = wait.until(
             EC.element_to_be_clickable(
@@ -90,13 +112,6 @@ class SharePoint:
         print("Open in Desktop clicked")
 
         #time.sleep(2)
-
-        # Download a Copy
-        """wait.until(
-            EC.element_to_be_clickable(
-                (By.XPATH, "//span[contains(text(),'Download a Copy')]")
-            )
-        ).click()"""
 
         print("Workbook download initiated...")
 

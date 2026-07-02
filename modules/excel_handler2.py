@@ -21,7 +21,9 @@ class ExcelHandler:
                 print(self.excel)
                 break
 
-            except Exception:
+            except Exception as e:
+                print(type(e))
+                print(e)
                 print(f"Waiting for Excel... ({i+1}/30)")
                 #time.sleep(1)
 
@@ -46,6 +48,7 @@ class ExcelHandler:
 
         print("Connected to:", self.workbook.Name)
 
+        #self.sheet = self.workbook.ActiveSheet
         self.sheet = self.workbook.Worksheets("Jun 29")
 
         print("Worksheet:", self.sheet.Name)
@@ -74,7 +77,16 @@ class ExcelHandler:
 
     def write_offer(self, row, column, value):
 
-        self.sheet.Cells(row, column).Value = value
+        
+        print(
+                f"WRITING {value} TO {column}{row}"
+            )
+
+        self.sheet.Range(
+            f"{column}{row}"
+        ).Value = value
+
+        #self.sheet.Cells(row, column).Value = value
 
     def save(self):
 

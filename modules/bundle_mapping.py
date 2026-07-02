@@ -37,8 +37,9 @@ OFFER_MAPPING = {
 EXCEL_COLUMNS = {
     "1 GB 1K": "D",
     "300MB 1K": "E",
-    "165MB OM": "F",
-    "400MB/1GB/5GB": "G",
+    "165MB 1K": "F",
+    "400MB 1K": "G",
+    "5GB 1K"  :  "H",
 
     "80@1000": "J",
     "70@1000": "K",

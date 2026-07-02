@@ -1,30 +1,38 @@
 import os
 from selenium import webdriver
 from selenium.webdriver.edge.service import Service
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 
 class Browser:
 
     def __init__(self):
 
-        # Downloads folder inside the project
-        download_path = os.path.join(
-            os.getcwd(),
+        # Project root
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        # Edge driver path
+        driver_path = os.path.join(
+            project_root,
+            "drivers",
+            "msedgedriver.exe"
+        )
+
+        # Downloads folder
+        self.download_path = os.path.join(
+            project_root,
             "downloads"
         )
 
-        os.makedirs(download_path, exist_ok=True)
+        os.makedirs(self.download_path, exist_ok=True)
 
         options = webdriver.EdgeOptions()
 
         options.add_argument("--start-maximized")
 
-        # Automatic downloads
         options.add_experimental_option(
             "prefs",
             {
-                "download.default_directory": download_path,
+                "download.default_directory": self.download_path,
                 "download.prompt_for_download": False,
                 "download.directory_upgrade": True,
                 "safebrowsing.enabled": True
@@ -32,13 +40,9 @@ class Browser:
         )
 
         self.driver = webdriver.Edge(
-            service=Service(
-                EdgeChromiumDriverManager().install()
-            ),
+            service=Service(driver_path),
             options=options
         )
-
-        self.download_path = download_path
 
     def open(self, url):
         self.driver.get(url)

@@ -69,12 +69,15 @@ class Website:
         
 
     def get_available_offers(self):
-
-        WebDriverWait(self.driver, 20).until(
-            EC.presence_of_element_located(
-                (By.CLASS_NAME, "_card-deal__title")
+        try:
+            WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located(
+                    (By.CLASS_NAME, "_card-deal__title")
+                )
             )
-        )
+        except TimeoutException:
+            print("No offers found.")
+            return []
 
         offers = []
 
