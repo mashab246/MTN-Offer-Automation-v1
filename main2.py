@@ -243,12 +243,6 @@ for row, phone in numbers:
                     1
                 )
 
-            else:
-
-                print(
-                    f"VOICE NO MAPPING: {offer}"
-                )
-
                 print(voice_offers)
 
                 website.reset_page(VOICE_URL)
