@@ -77,10 +77,6 @@ browser = Browser()
 website = Website(browser.driver)
 
 
-# Dictionary to hold all results
-#results = {}
-
-
 print("\n==============================")
 print("PROCESSING DATA BUNDLES")
 print("==============================")
@@ -102,24 +98,14 @@ for row, phone in numbers:
 
     print(f"\nProcessing DATA for {phone}")
 
-    #profiler = PerformanceProfiler()
-
-    #profiler.start("Enter Number")
     website.enter_number(phone)
-    #profiler.stop("Enter Number")
-    #website.enter_number(phone)
 
-    #profiler.start("Click Proceed")
     website.click_proceed()
-    #profiler.stop("Click Proceed")
-    #website.click_proceed()
 
     #time.sleep(3)
     try:
-        #profiler.start("Extract Offers")
         data_offers = website.get_available_offers()
-        #profiler.stop("Extract Offers")
-        #data_offers = website.get_available_offers()
+
         for offer in data_offers:
 
             if offer in OFFER_MAPPING:
@@ -198,15 +184,7 @@ for row, phone in numbers:
                     f"{save_error}"
                 )
 
-    #profiler.start("Reload Page")
     website.reset_page(DATA_URL)
-    #profiler.stop("Reload Page")
-    #website.reset_page(DATA_URL)
-    #time.sleep(2)
-    #total = profiler.summary()
-    #per_minute = 60 / total
-
-    #print(f"\nEstimated throughput: {per_minute:.2f} numbers/minute\n")
 
 print("\n==============================")
 print("PROCESSING VOICE BUNDLES")
@@ -272,8 +250,6 @@ for row, phone in numbers:
                 )
 
                 print(voice_offers)
-
-                #results[phone]["voice"] = voice_offers
 
                 website.reset_page(VOICE_URL)
 

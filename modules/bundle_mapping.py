@@ -1,20 +1,3 @@
-"""OFFER_COLUMNS = {
-
-    # DATA
-    "1GB @1K": "E",
-    "300MB @1K": "F",
-    "165MB @1K": "G",
-    "400MB @1K": "H",
-
-    # VOICE
-    "80Min @1,000": "J",
-    "70Min+5SMS+5MB @1,000": "K",
-    "40Min @1,000 (All Networks)": "L",
-    "25Min @1,000 (All Networks)": "M",
-    "40Min @1,000": "N",
-
-}"""
-
 # Website bundle name -> Excel bundle name
 OFFER_MAPPING = {
 

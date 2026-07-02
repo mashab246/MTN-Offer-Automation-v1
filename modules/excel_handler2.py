@@ -86,8 +86,6 @@ class ExcelHandler:
             f"{column}{row}"
         ).Value = value
 
-        #self.sheet.Cells(row, column).Value = value
-
     def save(self):
 
         self.workbook.Save()

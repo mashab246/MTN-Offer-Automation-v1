@@ -53,7 +53,6 @@ class SharePoint:
         )
 
         print("File clicked")
-        #input("Has the File menu actually opened? Press Enter...")
 
         time.sleep(3)
 
