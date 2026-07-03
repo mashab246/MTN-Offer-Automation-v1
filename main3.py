@@ -96,7 +96,7 @@ VOICE_URL = "https://www.mtn.co.ug/deal-types/daily-voice-bundles/"
 # Download latest SharePoint workbook
 # ----------------------------
 
-SHAREPOINT_URL = "https://airtelaf-my.sharepoint.com/:x:/g/personal/13400403_airtel_africa/IQAnROVW_apXSJ2A0axNmhZiAcmSDh1qT8AUatkIzirW66Y?e=eJOza1&isSPOFile=1&ovuser=16c73727-979c-4d82-b3a7-eb6a2fddfe57%2C23245518%40airtel.africa&wdExp=TEAMS-TREATMENT&web=1&TeamsCID=2c21f2f2-9c46-49d3-b7a8-f0af79d561a1&clickparams=eyJBcHBOYW1lIjoiVGVhbXMtRGVza3RvcCIsIkFwcFZlcnNpb24iOiI0OS8yNjA1MjkwNjEyMSJ9&linkOpenTime=1782796862307"
+SHAREPOINT_URL = "https://airtelaf-my.sharepoint.com/:x:/r/personal/13214534_airtel_africa/_layouts/15/Doc.aspx?sourcedoc=%7BA7FD07A2-4CAA-4E33-8FB8-37ED1A0EF491%7D&file=Offer%20Check%20from%20Website.xlsx&fromShare=true&action=default&mobileredirect=true"
 
 browser = Browser()
 
