@@ -1,6 +1,6 @@
 import os
 import time
-from modules.browser import Browser
+from modules.browser2 import Browser
 from modules.website import Website
 from modules.excel_handler2 import ExcelHandler
 from modules.bundle_mapping import OFFER_MAPPING, EXCEL_COLUMNS
