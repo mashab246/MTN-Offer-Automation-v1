@@ -49,7 +49,7 @@ class ExcelHandler:
         print("Connected to:", self.workbook.Name)
 
         #self.sheet = self.workbook.ActiveSheet
-        self.sheet = self.workbook.Worksheets("Jul 05")
+        self.sheet = self.workbook.Worksheets("Jul 08")
 
         print("Worksheet:", self.sheet.Name)
 
