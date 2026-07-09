@@ -1,94 +1,335 @@
+import os
+import time
 from modules.browser import Browser
 from modules.website import Website
 from modules.excel_handler import ExcelHandler
-import time
+from modules.bundle_mapping import OFFER_MAPPING, EXCEL_COLUMNS
+from modules.sharepoint import SharePoint
+from concurrent.futures import ThreadPoolExecutor
 
 
-URL = "https://www.mtn.co.ug/deal-types/daily-data-bundles/?gad_source=1&gad_campaignid=23923934047&gbraid=0AAAAADJWrbU4o3K4akuqjQxG_sQW3-Ze8&gclid=CjwKCAjw6f3RBhApEiwAMaCqWQKET5tvtad9tRocoQAllwypSaWsr59NmS7d5gpqlFePlvesO46nDxoCuCgQAvD_BwE"
+def show_progress(processed, total, failures, start_time):
+
+    elapsed = time.time() - start_time
+
+    speed = (processed / elapsed) * 60 if elapsed > 0 else 0
+
+    remaining = total - processed
+
+    eta_seconds = (
+        remaining / (processed / elapsed)
+        if processed > 0 else 0
+    )
+
+    elapsed_days = int(elapsed // 86400)
+    elapsed_hours = int((elapsed % 86400) // 3600)
+    elapsed_minutes = int((elapsed % 3600) // 60)
+
+    eta_days = int(eta_seconds // 86400)
+    eta_hours = int((eta_seconds % 86400) // 3600)
+
+    print("\n===================================")
+    print(f"Processed : {processed:,} / {total:,}")
+    print(f"Speed     : {speed:.1f} numbers/min")
+    print(
+        f"Elapsed   : {elapsed_days}d "
+        f"{elapsed_hours}h "
+        f"{elapsed_minutes}m"
+    )
+    print(f"Remaining : {eta_days}d {eta_hours}h")
+    print(f"Failures  : {failures:,}")
+    print("===================================\n")
+
+CHECKPOINT_FILE = "checkpoint.txt"
 
 
-OFFER_COLUMNS = {
+def load_checkpoint():
 
-    # DATA
-    "1GB @1K": "E",
-    "300MB @1K": "F",
-    "165MB @1K": "G",
+    if os.path.exists(CHECKPOINT_FILE):
 
-    # These all belong under the 400MB/1GB/5GB column
-    "500MB @1K": "H",
-    "1GB for 2days @1K": "H",
-    "2.6GB for 3days @1K": "H",
+        with open(CHECKPOINT_FILE, "r") as f:
 
-    # VOICE
-    "80@1000": "J",
-    "70@1000": "K",
-    "40Allnet@1000": "L",
-    "25allnet@1000": "M",
-    "40mins@1000": "N",
-}
+            content = f.read().strip()
+
+            if content:
+                return int(content)
+
+    return 0
 
 
-excel = ExcelHandler(
-    r"C:\Users\23245518\Desktop\numbers.xlsx"
-)
+def save_checkpoint(index):
 
+    with open(CHECKPOINT_FILE, "w") as f:
+
+        f.write(str(index))
+
+def get_data_offers(phone, data_site):
+
+    data_site.enter_number(phone)
+
+    data_site.click_proceed()
+
+    offers = data_site.get_available_offers()
+
+    data_site.reset_page(DATA_URL)
+
+    return offers
+
+
+def get_voice_offers(phone, voice_site):
+
+    voice_site.enter_number(phone)
+
+    voice_site.click_proceed()
+
+    offers = voice_site.get_available_offers()
+
+    voice_site.reset_page(VOICE_URL)
+
+    return offers
+
+
+DATA_URL = "https://www.mtn.co.ug/deal-types/daily-data-bundles/"
+VOICE_URL = "https://www.mtn.co.ug/deal-types/daily-voice-bundles/"
+
+# ----------------------------
+# Download latest SharePoint workbook
+# ----------------------------
+
+SHAREPOINT_URL = "https://airtelaf-my.sharepoint.com/:x:/r/personal/13214534_airtel_africa/_layouts/15/Doc.aspx?sourcedoc=%7BA7FD07A2-4CAA-4E33-8FB8-37ED1A0EF491%7D&file=Offer%20Check%20from%20Website.xlsx&fromShare=true&action=default&mobileredirect=true"
 
 browser = Browser()
 
-browser.open(URL)
+sharepoint = SharePoint(browser.driver)
 
-website = Website(browser.driver)
+sharepoint.open_workbook(SHAREPOINT_URL)
 
 
-website.accept_cookies()
+sharepoint.download_copy()
 
-time.sleep(1)
-
+time.sleep(10)
+for _ in range(60):
+    try:
+        excel = ExcelHandler(
+            "Offer Check from Website.xlsx"
+            )
+        break
+    except:
+        time.sleep(1)
 
 numbers = excel.get_phone_numbers()
 
+#numbers = excel.get_phone_numbers()
+
+start_index = load_checkpoint()
+
 print(f"Found {len(numbers)} phone numbers")
 
+print(
+    f"Resuming from record "
+    f"{start_index:,}"
+)
 
-for row, phone in numbers:
+data_browser = Browser()
+voice_browser = Browser()
+
+data_site = Website(data_browser.driver)
+voice_site = Website(voice_browser.driver)
+
+data_browser.open(DATA_URL)
+voice_browser.open(VOICE_URL)
+
+data_site.accept_cookies()
+voice_site.accept_cookies()
+
+print("\n==============================")
+print("PROCESSING DATA + VOICE")
+print("==============================")
+
+total_numbers = len(numbers)
+processed = 0
+failures = 0
+
+start_time = time.time()
+
+executor = ThreadPoolExecutor(max_workers=2)
+
+#for row, phone in numbers:
+for index, (row, phone) in enumerate(
+    numbers[start_index:],
+    start=start_index
+):
+
+    print(f"\nProcessing {phone}")
 
     try:
-        print(f"Processing {row-2}/{len(numbers)} : {phone}")
 
-        website.enter_number(phone)
+        data_future = executor.submit(
+            get_data_offers,
+            phone,
+            data_site
+        )
 
-        website.click_proceed()
+        voice_future = executor.submit(
+            get_voice_offers,
+            phone,
+            voice_site
+        )
 
-        time.sleep(2)
+        data_offers = data_future.result()
 
-        offers = website.get_available_offers()
+        voice_offers = voice_future.result()
 
-        print("Offers found:", offers)
+        # ======================
+        # COMBINED OFFERS
+        # ======================
 
-        for offer in offers:
+        all_offers = (
+            data_offers +
+            voice_offers
+        )
 
-            if offer in OFFER_COLUMNS:
+        for offer in all_offers:
+
+            if offer in OFFER_MAPPING:
+
+                excel_name = OFFER_MAPPING[offer]
+
+                if excel_name not in EXCEL_COLUMNS:
+
+                    print(
+                        f"EXCEL COLUMN MISSING: "
+                        f"{excel_name}"
+                    )
+
+                    continue
+
+                column = EXCEL_COLUMNS[
+                    excel_name
+                ]
 
                 excel.write_offer(
                     row,
-                    OFFER_COLUMNS[offer],
+                    column,
                     1
                 )
 
-        excel.save()
-        
-        browser.driver.get(URL)
-
-        time.sleep(2)
-
-        website.accept_cookies()
-
-        time.sleep(2)
-
     except Exception as e:
-        print(f"Failed for {phone}: {e}")
-        
-browser.close()
 
-print("Finished Successfully!")
+        failures += 1
 
+        print(
+            f"Failed for {phone}"
+        )
+
+        print(
+            "Refreshing browsers..."
+        )
+
+        try:
+            data_browser.driver.refresh()
+        except:
+            pass
+
+        try:
+            voice_browser.driver.refresh()
+        except:
+            pass
+
+        time.sleep(3)
+
+        continue
+
+    processed += 1
+
+    if processed % 50 == 0:
+
+        show_progress(
+            processed,
+            total_numbers,
+            failures,
+            start_time
+        )
+
+    if processed % 50 == 0:
+
+        print(
+            "Saving checkpoint..."
+        )
+
+        try:
+
+            excel.save()
+
+            save_checkpoint(index)
+
+            print(
+                f"Current checkpoint: {index:,}"
+            )
+
+            print(
+                f"Checkpoint saved "
+                f"at record "
+                f"{index:,}"
+            )
+
+        except Exception as e:
+            print(
+                f"Save failed: {e}"
+            )
+
+# Save Excel
+excel.save()
+
+if os.path.exists(
+    CHECKPOINT_FILE
+):
+
+    os.remove(
+        CHECKPOINT_FILE
+    )
+
+    print(
+        "Checkpoint cleared."
+    )
+
+
+print("\nExcel Saved Successfully.")
+
+
+# Close Browser
+executor.shutdown(wait=True)
+#browser.close()
+
+print("\n===================================")
+print("FINAL SUMMARY")
+print("===================================")
+
+show_progress(
+    processed,
+    total_numbers,
+    failures,
+    start_time
+)
+
+"""print(
+    f"Data Failures : {failures:,}"
+)
+
+print(
+    f"Voice Failures: "
+    f"{failures:,}"
+)
+
+print(
+    f"Total Failures: "
+    f"{failures + failures:,}"
+)"""
+
+print(
+    f"Total Failures: {failures:,}"
+)
+
+print("===================================\n")
+
+print("\nAutomation Finished Successfully!")
