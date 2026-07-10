@@ -1,5 +1,7 @@
 import win32com.client
 import pythoncom
+import time
+import os
 
 class ExcelHandler:
 
@@ -24,7 +26,7 @@ class ExcelHandler:
                 print(type(e))
                 print(e)
                 print(f"Waiting for Excel... ({i+1}/30)")
-                #time.sleep(1)
+                time.sleep(1)
 
         if self.excel is None:
             raise Exception("Could not connect to the running Excel instance.")
@@ -48,7 +50,7 @@ class ExcelHandler:
         print("Connected to:", self.workbook.Name)
 
         #self.sheet = self.workbook.ActiveSheet
-        self.sheet = self.workbook.Worksheets("Jul 08")
+        self.sheet = self.workbook.Worksheets("Jun 30")
 
         print("Worksheet:", self.sheet.Name)
 
@@ -60,7 +62,7 @@ class ExcelHandler:
 
         while True:
 
-            value = self.sheet.Cells(row, 2).Value   # Column A (MSISDN)
+            value = self.sheet.Cells(row, 1).Value   # Column A (MSISDN)
 
             if value is None:
                 break
