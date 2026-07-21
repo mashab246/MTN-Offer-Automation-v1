@@ -50,7 +50,7 @@ class ExcelHandler:
         print("Connected to:", self.workbook.Name)
 
         #self.sheet = self.workbook.ActiveSheet
-        self.sheet = self.workbook.Worksheets("Jun 30")
+        self.sheet = self.workbook.Worksheets("Jul 21")
 
         print("Worksheet:", self.sheet.Name)
 
@@ -62,7 +62,7 @@ class ExcelHandler:
 
         while True:
 
-            value = self.sheet.Cells(row, 1).Value   # Column A (MSISDN)
+            value = self.sheet.Cells(row, 2).Value   # Column A (MSISDN)
 
             if value is None:
                 break
